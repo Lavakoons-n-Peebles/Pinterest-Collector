@@ -81,25 +81,30 @@
             item.onmouseover = () => item.style.background = "rgba(230,230,230,0.8)";
             item.onmouseout = () => item.style.background = "rgba(255,255,255,0.6)";
             
-            item.innerHTML = `
-                <img src="${p.img}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; margin-right:10px;">
-                <span style="font-size:13px; font-weight:bold;">${p.likes} likes</span>
-            `;
+            item.innerHTML = `<img src="${p.img}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; margin-right:10px;">
+                  <div style="font-size:12px; overflow:hidden;">
+                    <div style="font-weight:bold;">${p.title.substring(0, 20)}</div>
+                    <div>${p.likes} likes</div>
+                  </div>`;
             list.appendChild(item);
         });
     };
 
     document.getElementById('btnCollect').onclick = async (e) => {
-        const links = Array.from(document.querySelectorAll('[data-test-id="masonry"] a, [data-test-id="relatedPins"] a'))
+        const links = Array.from(document.querySelectorAll('[data-test-id="masonry"] a, [data-test-id="relatedPins"] a, [data-test-id="homefeed-feed"] a'))
             .filter(a => a.href.includes('/pin/'));
         for (const link of links) {
             const id = link.href.split('/pin/')[1].replace('/', '');
             if (pins.find(p => p.id === id)) continue;
-            let v = { id, url: link.href, img: link.querySelector('img')?.src, likes: 0 };
+            let v = { id, url: link.href, img: link.querySelector('img')?.src, likes: 0, title: "" };
             try {
                 const res = await fetch(link.href);
                 const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+                const text = doc.body.innerHTML;
                 v.likes = parseInt(doc.querySelector('[data-test-id="reactions-count"]')?.innerText.replace(/\D/g, '') || 0);
+                debugger;
+                const titleMatch = text.match(/"pin_title":"([^"]+)"/);
+                v.title = titleMatch ? titleMatch[1] : "";
             } catch(e){}
             pins.push(v);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(pins));
@@ -110,7 +115,7 @@
     };
 
     document.getElementById('btnCSV').onclick = () => {
-        const csv = ["id,url,img,likes", ...pins.map(p => `${p.id},${p.url},${p.img},${p.likes}`)].join("\n");
+        const csv = ["id,url,img,likes,title", ...pins.map(p => `${p.id},${p.url},${p.img},${p.likes},"${p.title.replace(/"/g, '""')}"`)].join("\n");
         const a = document.createElement('a');
         a.href = "data:text/csv;charset=utf-8," + encodeURI(csv);
         a.download = 'pins.csv'; a.click();
