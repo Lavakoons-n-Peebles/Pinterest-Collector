@@ -13,53 +13,77 @@
 
     const box = document.createElement('div');
     box.id = 'pinCollectorBox';
-    box.style = "position:fixed;bottom:20px;right:20px;z-index:9999;background:#fff;padding:20px;border:2px solid #000;border-radius:15px;font-size:18px;";
+    // Glassmorphism стили с адаптивной шириной
+    box.style = `
+        position:fixed;bottom:20px;right:20px;z-index:9999;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        padding:20px;
+        border:1px solid rgba(255, 255, 255, 0.3);
+        border-radius:20px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        width: 400px;
+        max-width: 90vw;
+    `;
     
     // ELEMENTS
     box.innerHTML = `
-        <button id="toggleBtn" style="padding:10px 20px;font-size:18px;cursor:pointer;">Open panel</button>
-        <div id="mainPanel" style="display:none;margin-top:15px;">
-            <button id="btnCollect" style="padding:10px;font-size:18px;cursor:pointer;">Collect [${pins.length}]</button>
-            <button id="btnTop" style="padding:10px;font-size:18px;cursor:pointer;">Top-${TOP_COUNT}</button>
-            <button id="btnClear" style="padding:10px;font-size:18px;cursor:pointer;">Clear All</button>
-            <textarea id="textResult" style="display:block;width:400px;height:200px;margin-top:10px;font-size:16px;"></textarea>
-            <div style="display:flex;gap:10px;margin-top:10px;">
-                <button id="btnCopy" style="flex:1;padding:10px;font-size:18px;cursor:pointer;">Copy JSON</button>
-                <button id="btnCSV" style="flex:1;padding:10px;font-size:18px;cursor:pointer;">Export CSV</button>
+        <h3 style="margin:0 0 15px 0; font-size:18px; color:#333;">Pinterest Collector Dashboard</h3>
+        <button id="toggleBtn" style="padding:10px 20px; font-size:14px; border-radius:10px; border:none; background:#eee; cursor:pointer; width:100%;">Open</button>
+        <div id="mainPanel" style="display:none; margin-top:15px;">
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <button id="btnCollect" style="flex:1; padding:10px; border-radius:10px; border:none; background:#efefef; cursor:pointer;">Collect [${pins.length}]</button>
+                <button id="btnTop" style="flex:1; padding:10px; border-radius:10px; border:none; background:#efefef; cursor:pointer;">Top-${TOP_COUNT}</button>
+                <button id="btnClear" style="padding:10px; border-radius:10px; border:none; background:#fee; color:#d00; cursor:pointer;">Clear</button>
             </div>
-            <div id="topList" style="display:none;margin-top:15px;max-height:600px;overflow-y:auto;border-top:3px solid #000;padding-top:10px;width:400px;"></div>
+            <textarea id="textResult" style="width:100%; height:120px; border-radius:10px; border:1px solid #ddd; padding:10px; font-size:13px; box-sizing:border-box;"></textarea>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button id="btnCopy" style="flex:1; padding:10px; border-radius:10px; border:none; background:#333; color:#fff; cursor:pointer;">Copy JSON</button>
+                <button id="btnCSV" style="flex:1; padding:10px; border-radius:10px; border:none; background:#333; color:#fff; cursor:pointer;">Export CSV</button>
+            </div>
+            <div id="topList" style="display:none; margin-top:15px; max-height:350px; overflow-y:auto; border-top:1px solid #eee; padding-top:15px;"></div>
         </div>
     `;
     document.body.appendChild(box);
     document.getElementById('textResult').value = JSON.stringify(pins, null, 2);
 
+    // EVENTS
     const toggle = document.getElementById('toggleBtn');
     const panel = document.getElementById('mainPanel');
-    
-    // EVENTS
     toggle.onclick = () => {
         panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-        toggle.innerText = panel.style.display === 'none' ? 'Open panel' : 'Hide panel';
+        toggle.innerText = panel.style.display === 'none' ? 'Open' : 'Hide panel';
     };
 
     const showTop = () => {
         const list = document.getElementById('topList');
         list.style.display = 'block';
-        list.innerHTML = `<h3>Top-${TOP_COUNT}</h3>`;
+        list.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0; font-size:16px;">Top Pins</h3>
+                <button id="hideTopBtn" style="padding:5px 12px; border-radius:8px; border:none; background:#ff4444; color:#fff; cursor:pointer;">Hide</button>
+            </div>`;
         
-        const hideBtn = document.createElement('button');
-        hideBtn.innerText = "Hide Top";
-        hideBtn.style.cursor = "pointer";
-        hideBtn.onclick = () => list.style.display = 'none';
-        list.appendChild(hideBtn);
+        document.getElementById('hideTopBtn').onclick = () => list.style.display = 'none';
 
         const unique = Array.from(new Map(pins.map(p => [p.id, p])).values());
         unique.sort((a, b) => b.likes - a.likes).slice(0, TOP_COUNT).forEach(p => {
-            const item = document.createElement('div');
-            item.style = "display:flex;align-items:center;margin:10px 0;";
+            const item = document.createElement('a');
+            item.href = p.url;
+            item.target = "_blank";
+            item.style = `
+                display:flex; align-items:center; margin-bottom:5px; padding:5px; 
+                background:rgba(255,255,255,0.6); border-radius:6px; text-decoration:none; color:#333;
+                transition: background 0.2s;
+            `;
+            item.onmouseover = () => item.style.background = "rgba(230,230,230,0.8)";
+            item.onmouseout = () => item.style.background = "rgba(255,255,255,0.6)";
+            
             item.innerHTML = `
-                <img src="${p.img}" style="width:60px;height:60px;object-fit:cover;margin-right:15px;">
-                <a href="${p.url}" target="_blank" style="font-size:20px;">${p.likes} likes</a>
+                <img src="${p.img}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; margin-right:10px;">
+                <span style="font-size:13px; font-weight:bold;">${p.likes} likes</span>
             `;
             list.appendChild(item);
         });
@@ -86,9 +110,10 @@
     };
 
     document.getElementById('btnCSV').onclick = () => {
-        const csvContent = "data:text/csv;charset=utf-8," + ["id,url,img,likes", ...pins.map(p => `${p.id},${p.url},${p.img},${p.likes}`)].join("\n");
+        const csv = ["id,url,img,likes", ...pins.map(p => `${p.id},${p.url},${p.img},${p.likes}`)].join("\n");
         const a = document.createElement('a');
-        a.href = encodeURI(csvContent); a.download = 'pins.csv'; a.click();
+        a.href = "data:text/csv;charset=utf-8," + encodeURI(csv);
+        a.download = 'pins.csv'; a.click();
     };
 
     document.getElementById('btnTop').onclick = showTop;
